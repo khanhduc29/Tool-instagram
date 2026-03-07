@@ -1,0 +1,169 @@
+import re
+from urllib.parse import urlparse, parse_qs, unquote
+from playwright.sync_api import sync_playwright
+
+
+def clean_number(text):
+    if not text:
+        return None
+
+    text = text.lower().replace(",", "").strip()
+
+    if "k" in text:
+        return int(float(text.replace("k", "")) * 1000)
+
+    if "m" in text:
+        return int(float(text.replace("m", "")) * 1000000)
+
+    try:
+        return int(text)
+    except:
+        return text
+
+
+def decode_instagram_url(url):
+
+    if not url:
+        return None
+
+    if "l.instagram.com" not in url:
+        return url
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    if "u" in query:
+        return unquote(query["u"][0])
+
+    return url
+
+
+def clean_url(url):
+
+    if not url:
+        return None
+
+    parsed = urlparse(url)
+
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def extract_phone(text):
+
+    raw_phones = re.findall(
+        r"\+?\d[\d\s\-]{8,}",
+        text
+    )
+
+    phones = []
+
+    for p in raw_phones:
+
+        digits = re.sub(r"\D", "", p)
+
+        if 9 <= len(digits) <= 15:
+            phones.append(p.strip())
+
+    phones = list(set(phones))
+
+    return phones[0] if phones else None
+
+
+def extract_email(text):
+
+    emails = re.findall(
+        r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+        text
+    )
+
+    emails = list(set(emails))
+
+    return emails[0] if emails else None
+
+
+def crawl_instagram_profile(url):
+
+    with sync_playwright() as p:
+
+        context = p.chromium.launch_persistent_context(
+            user_data_dir="./insta_session",
+            headless=True
+        )
+
+        page = context.new_page()
+
+        page.goto(url, timeout=60000)
+        page.wait_for_timeout(6000)
+
+        result = {}
+
+        # username
+        result["username"] = url.rstrip("/").split("/")[-1]
+
+        header_text = page.inner_text("header")
+        
+        # avatar
+        try:
+            avatar = page.locator('header img').first.get_attribute("src")
+            result["avatar"] = avatar
+        except:
+            result["avatar"] = None
+
+        # name (line thứ 2 sau username)
+        lines = [x.strip() for x in header_text.split("\n") if x.strip()]
+
+        if len(lines) >= 2:
+            result["name"] = lines[1]
+        else:
+            result["name"] = None
+
+        # stats
+        try:
+            posts_text = page.locator('li:has-text("posts")').inner_text()
+            followers_text = page.locator('a[href*="followers"]').inner_text()
+            following_text = page.locator('a[href*="following"]').inner_text()
+
+            posts = re.search(r"\d[\d,]*", posts_text)
+            followers = re.search(r"\d[\d,]*", followers_text)
+            following = re.search(r"\d[\d,]*", following_text)
+
+            result["posts"] = clean_number(posts.group()) if posts else None
+            result["followers"] = clean_number(followers.group()) if followers else None
+            result["following"] = clean_number(following.group()) if following else None
+
+        except:
+            result["posts"] = None
+            result["followers"] = None
+            result["following"] = None
+
+        # bio block
+        try:
+
+            bio_text = header_text
+
+            result["bio"] = bio_text
+
+        except:
+            result["bio"] = None
+
+        # website
+        try:
+
+            link = page.locator('a[href*="l.instagram.com"]').first.get_attribute("href")
+
+            decoded = decode_instagram_url(link)
+
+            result["website"] = clean_url(decoded)
+
+        except:
+            result["website"] = None
+
+        # email
+        result["email"] = extract_email(header_text)
+
+        # phone
+        result["phone"] = extract_phone(header_text)
+
+        context.close()
+
+        return result
