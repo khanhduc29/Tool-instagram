@@ -47,7 +47,7 @@ from crawler.instagram_crawler import crawl_instagram_profile
 from crawler.website_crawler import crawl_website
 
 
-API_BASE = "http://localhost:3000/api/instagram"
+API_BASE = "https://be-tool-crawldata.onrender.com/api/instagram"
 
 
 def log(msg):
