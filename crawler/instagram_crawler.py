@@ -92,8 +92,8 @@ def crawl_instagram_profile(url):
 
         page = context.new_page()
 
-        page.goto(url, timeout=60000)
-        page.wait_for_timeout(6000)
+        page.goto(url, timeout=10000)
+        page.wait_for_timeout(1000)
 
         result = {}
 
@@ -111,7 +111,7 @@ def crawl_instagram_profile(url):
         except:
             result["avatar"] = None
             print("[CRAWLER] Avatar not found")
-        print("[CRAWLER] Name:", result["name"])
+        
         
         # name (line thứ 2 sau username)
         lines = [x.strip() for x in header_text.split("\n") if x.strip()]

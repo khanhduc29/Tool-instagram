@@ -102,7 +102,8 @@ def worker():
 
         if not task:
             log("No pending tasks...")
-            time.sleep(5)
+            log("Sleeping 50 seconds before next task check...")
+            time.sleep(50)
             continue
 
         task_id = task["_id"]
@@ -134,7 +135,7 @@ def worker():
 
             update_error(task_id, e)
 
-        time.sleep(2)
+        time.sleep(5)
 
 
 if __name__ == "__main__":
