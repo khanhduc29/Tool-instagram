@@ -99,16 +99,20 @@ def crawl_instagram_profile(url):
 
         # username
         result["username"] = url.rstrip("/").split("/")[-1]
-
+        print("[CRAWLER] Username:", result["username"])
         header_text = page.inner_text("header")
+        print("[CRAWLER] Header loaded")
         
         # avatar
         try:
             avatar = page.locator('header img').first.get_attribute("src")
             result["avatar"] = avatar
+            print("[CRAWLER] Avatar found")
         except:
             result["avatar"] = None
-
+            print("[CRAWLER] Avatar not found")
+        print("[CRAWLER] Name:", result["name"])
+        
         # name (line thứ 2 sau username)
         lines = [x.strip() for x in header_text.split("\n") if x.strip()]
 
@@ -131,7 +135,11 @@ def crawl_instagram_profile(url):
             result["followers"] = clean_number(followers.group()) if followers else None
             result["following"] = clean_number(following.group()) if following else None
 
-        except:
+            print("[CRAWLER] Stats:", result["posts"], result["followers"], result["following"])
+            
+        except Exception as e:
+            print("[CRAWLER] Stats error:", e)
+            
             result["posts"] = None
             result["followers"] = None
             result["following"] = None
@@ -142,8 +150,10 @@ def crawl_instagram_profile(url):
             bio_text = header_text
 
             result["bio"] = bio_text
+            print("[CRAWLER] Bio found")
 
-        except:
+        except Exception as e:
+            print("[CRAWLER] Bio error:", e)
             result["bio"] = None
 
         # website
@@ -154,15 +164,21 @@ def crawl_instagram_profile(url):
             decoded = decode_instagram_url(link)
 
             result["website"] = clean_url(decoded)
+            print("[CRAWLER] Website found:", result["website"])
 
-        except:
+        except Exception as e:
+            print("[CRAWLER] Website error:", e)
             result["website"] = None
 
         # email
         result["email"] = extract_email(header_text)
+        if result["email"]:
+            print("[CRAWLER] Email:", result["email"])
 
         # phone
         result["phone"] = extract_phone(header_text)
+        if result["phone"]:
+            print("[CRAWLER] Phone:", result["phone"])
 
         context.close()
 

@@ -55,10 +55,13 @@ def log(msg):
 
 
 def get_pending_tasks():
+    print("[WORKER] Fetching tasks...")
     res = requests.get(f"{API_BASE}/pending-tasks?limit=1")
+    print("[WORKER] Status:", res.status_code)
     data = res.json()
 
     if not data["success"]:
+        print("[WORKER] Error fetching tasks")
         return None
 
     tasks = data["data"]
